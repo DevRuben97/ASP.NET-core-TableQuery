@@ -12,6 +12,7 @@ namespace Example.Persistence
 
         public DbSet<Product> Products { get; set; }
 
+
         public AppDbContext(DbContextOptions options): base(options)
         {
 
