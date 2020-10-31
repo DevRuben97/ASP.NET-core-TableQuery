@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using TableQuery.Entities;
-using TableQuery.Interfaces;
+using TableQuery.Entities.UserViews;
 
 namespace TableQuery.Extensions
 {
@@ -91,54 +91,48 @@ namespace TableQuery.Extensions
         public static async Task<GridResponse> SetColumnsAsync(this PagedResult paged, DbContext dbContext, int userId, string PageCode, int level= 0){
             var grid = GridResponse.Convert(paged);
 
-            //Get the actual View:
-            var data = await dbContext.Set<IUserView>()
+            //Obtener la vista actual 
+            var data = await dbContext.Set<UserView>()
               .Include(x => x.Page)
               .Include(x => x.ViewColumns).ThenInclude(x => x.Column)
               .Where(x => x.UserId== userId && x.Page.Code== PageCode && x.IsDefault== x.IsShowDefault && x.Level== level)
               .FirstOrDefaultAsync();
 
-            //Get the count of views:
-            var viewsCount =await dbContext.Set<IUserView>().Where(x => x.UserId == userId && x.Page.Code == PageCode && x.Level == level).CountAsync();
+            //Obtener el conteo de vistas del Usuario
+            var viewsCount =await dbContext.Set<UserView>().Where(x => x.UserId == userId && x.Page.Code == PageCode && x.Level == level).CountAsync();
 
             var view = new TableView();
             List<Column> columns = new List<Column>();
-            // In case there is no user view (It is a new user, it has never entered the current grid or they deleted the user's view)
+            //En caso de que no exista ninguna vista del usuario (Es un usuario nuevo , nunca ha entrado al grid actual o borraron la vista del usuario)
           if (data== null)
             {
-                // Get the columns of the current view:
-                var columnsModel = await dbContext.Set<IViewColumn>().Include(x => x.Page).Where(x => x.Page.Code == PageCode && x.Default && x.Level == level).ToListAsync();
-                //In case there is no user view, one will be created with the columns of the default view.
+                //Obtener las columnas de la vista actual:
+                var columnsModel = await dbContext.Set<ViewColumn>().Include(x => x.Page).Where(x => x.Page.Code == PageCode && x.Default && x.Level == level).ToListAsync();
+                //En caso de que no exista ninguna vista del usuario se creara una con las columnas de la vista por defecto.
                 if (viewsCount== 0)
                 {
-                    var Newview= Activator.CreateInstance<IUserView>();
-                    Newview.UserId= userId;
-                    Newview.PageId= columnsModel.FirstOrDefault().Page.Id;
-                    Newview.IsDefault= true;
-                    Newview.IsShowDefault= true;
-                    Newview.Level= level;
-                    
-                    //Set the columns of default view:
-                    var NewColumsn= new List<IUserViewColumn>();
-                    foreach (var item in columnsModel)
+                    dbContext.Set<UserView>().Add(new UserView()
                     {
-                        var newColumn= Activator.CreateInstance<IUserViewColumn>();
-                        newColumn.ColumnId= item.Id;
-                        newColumn.Selected= true;
-                        NewColumsn.Add(newColumn);
-                    }
+                        UserId = userId,
+                        PageId = columnsModel.FirstOrDefault().Page.Id,
+                        IsDefault = true,
+                        IsShowDefault = true,
+                        Level= level,
+                        ViewColumns = columnsModel.Select(x => new UserViewColumn()
+                        {
+                            ColumnId = x.Id,
+                            Selected = true,
 
-                    Newview.ViewColumns= NewColumsn;
-
-                    dbContext.Set<IUserView>().Add(Newview);
+                        }).ToList()
+                    });
 
                     await dbContext.SaveChangesAsync();
                 }
 
                  columns = columnsModel.Select(x => new Column()
                 {
-                    FieldId = x.FieldId,
-                    Name = x.Name
+                    Name = x.Name,
+                    FieldId = x.FieldId
                 }).ToList();
 
                  view = new TableView()
@@ -153,7 +147,7 @@ namespace TableQuery.Extensions
             }
             else
             {
-                // If there is a view, the current view is returned with its corresponding columns (Default or Custom):
+                //Si Existe una vista se devuelva la vista actual con sus columnas correspondientes (Por defecto o Personalizada):
                 columns = data.ViewColumns.Where(x => x.Selected).OrderBy(x=> x.Column.Id).Select(x => new Column()
                 {
                     Name = x.Column.Name,

@@ -29,7 +29,9 @@ namespace Example.Controllers
         {
             try
             {
-               var result=  await  _dbContext.Products.ToListPagedAsync(query);
+               var pagedResult=  await  _dbContext.Products.ToListPagedAsync(query);
+               
+               var result= await pagedResult.SetColumnsAsync(_dbContext, 1, "", 0);
 
                 return Ok(result);
             }
