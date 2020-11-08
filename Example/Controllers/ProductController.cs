@@ -30,10 +30,8 @@ namespace Example.Controllers
             try
             {
                var pagedResult=  await  _dbContext.Products.ToListPagedAsync(query);
-               
-               var result= await pagedResult.SetColumnsAsync(_dbContext, 1, "", 0);
 
-                return Ok(result);
+                return Ok(pagedResult);
             }
             catch (Exception ex)
             {

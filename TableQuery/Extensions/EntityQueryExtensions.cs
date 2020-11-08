@@ -79,97 +79,97 @@ namespace TableQuery.Extensions
 
             return result;
         }
-        /// <summary>
-        /// Get the columns of the selected View
-        /// </summary>
-        /// <param name="paged">Instance of Paged Entity</param>
-        /// <param name="dbContext">Instance of DbContext</param>
-        /// <param name="userId">The id of the user</param>
-        /// <param name="PageCode">The code of the page</param>
-        /// <param name="level">Lavel of the page, for create a more of 1 table on a page.</param>
-        /// <returns></returns>
-        public static async Task<GridResponse> SetColumnsAsync(this PagedResult paged, DbContext dbContext, int userId, string PageCode, int level= 0){
-            var grid = GridResponse.Convert(paged);
+        // /// <summary>
+        // /// Get the columns of the selected View
+        // /// </summary>
+        // /// <param name="paged">Instance of Paged Entity</param>
+        // /// <param name="dbContext">Instance of DbContext</param>
+        // /// <param name="userId">The id of the user</param>
+        // /// <param name="PageCode">The code of the page</param>
+        // /// <param name="level">Lavel of the page, for create a more of 1 table on a page.</param>
+        // /// <returns></returns>
+        // public static async Task<GridResponse> SetColumnsAsync(this PagedResult paged, DbContext dbContext, int userId, string PageCode, int level= 0){
+        //     var grid = GridResponse.Convert(paged);
 
-            //Obtener la vista actual 
-            var data = await dbContext.Set<UserView>()
-              .Include(x => x.Page)
-              .Include(x => x.ViewColumns).ThenInclude(x => x.Column)
-              .Where(x => x.UserId== userId && x.Page.Code== PageCode && x.IsDefault== x.IsShowDefault && x.Level== level)
-              .FirstOrDefaultAsync();
+        //     //Obtener la vista actual 
+        //     var data = await dbContext.Set<UserView>()
+        //       .Include(x => x.Page)
+        //       .Include(x => x.ViewColumns).ThenInclude(x => x.Column)
+        //       .Where(x => x.UserId== userId && x.Page.Code== PageCode && x.IsDefault== x.IsShowDefault && x.Level== level)
+        //       .FirstOrDefaultAsync();
 
-            //Obtener el conteo de vistas del Usuario
-            var viewsCount =await dbContext.Set<UserView>().Where(x => x.UserId == userId && x.Page.Code == PageCode && x.Level == level).CountAsync();
+        //     //Obtener el conteo de vistas del Usuario
+        //     var viewsCount =await dbContext.Set<UserView>().Where(x => x.UserId == userId && x.Page.Code == PageCode && x.Level == level).CountAsync();
 
-            var view = new TableView();
-            List<Column> columns = new List<Column>();
-            //En caso de que no exista ninguna vista del usuario (Es un usuario nuevo , nunca ha entrado al grid actual o borraron la vista del usuario)
-          if (data== null)
-            {
-                //Obtener las columnas de la vista actual:
-                var columnsModel = await dbContext.Set<ViewColumn>().Include(x => x.Page).Where(x => x.Page.Code == PageCode && x.Default && x.Level == level).ToListAsync();
-                //En caso de que no exista ninguna vista del usuario se creara una con las columnas de la vista por defecto.
-                if (viewsCount== 0)
-                {
-                    dbContext.Set<UserView>().Add(new UserView()
-                    {
-                        UserId = userId,
-                        PageId = columnsModel.FirstOrDefault().Page.Id,
-                        IsDefault = true,
-                        IsShowDefault = true,
-                        Level= level,
-                        ViewColumns = columnsModel.Select(x => new UserViewColumn()
-                        {
-                            ColumnId = x.Id,
-                            Selected = true,
+        //     var view = new TableView();
+        //     List<Column> columns = new List<Column>();
+        //     //En caso de que no exista ninguna vista del usuario (Es un usuario nuevo , nunca ha entrado al grid actual o borraron la vista del usuario)
+        //   if (data== null)
+        //     {
+        //         //Obtener las columnas de la vista actual:
+        //         var columnsModel = await dbContext.Set<ViewColumn>().Include(x => x.Page).Where(x => x.Page.Code == PageCode && x.Default && x.Level == level).ToListAsync();
+        //         //En caso de que no exista ninguna vista del usuario se creara una con las columnas de la vista por defecto.
+        //         if (viewsCount== 0)
+        //         {
+        //             dbContext.Set<UserView>().Add(new UserView()
+        //             {
+        //                 UserId = userId,
+        //                 PageId = columnsModel.FirstOrDefault().Page.Id,
+        //                 IsDefault = true,
+        //                 IsShowDefault = true,
+        //                 Level= level,
+        //                 ViewColumns = columnsModel.Select(x => new UserViewColumn()
+        //                 {
+        //                     ColumnId = x.Id,
+        //                     Selected = true,
 
-                        }).ToList()
-                    });
+        //                 }).ToList()
+        //             });
 
-                    await dbContext.SaveChangesAsync();
-                }
+        //             await dbContext.SaveChangesAsync();
+        //         }
 
-                 columns = columnsModel.Select(x => new Column()
-                {
-                    Name = x.Name,
-                    FieldId = x.FieldId
-                }).ToList();
+        //          columns = columnsModel.Select(x => new Column()
+        //         {
+        //             Name = x.Name,
+        //             FieldId = x.FieldId
+        //         }).ToList();
 
-                 view = new TableView()
-                {
-                    IsDefault = true,
-                    Level= level,
-                    ModuleCode = PageCode,
-                    ModuleName = columnsModel.FirstOrDefault().Page.Name,
-                    Columns = columns
-                };
+        //          view = new TableView()
+        //         {
+        //             IsDefault = true,
+        //             Level= level,
+        //             ModuleCode = PageCode,
+        //             ModuleName = columnsModel.FirstOrDefault().Page.Name,
+        //             Columns = columns
+        //         };
 
-            }
-            else
-            {
-                //Si Existe una vista se devuelva la vista actual con sus columnas correspondientes (Por defecto o Personalizada):
-                columns = data.ViewColumns.Where(x => x.Selected).OrderBy(x=> x.Column.Id).Select(x => new Column()
-                {
-                    Name = x.Column.Name,
-                    FieldId = x.Column.FieldId
-                }).ToList();
+        //     }
+        //     else
+        //     {
+        //         //Si Existe una vista se devuelva la vista actual con sus columnas correspondientes (Por defecto o Personalizada):
+        //         columns = data.ViewColumns.Where(x => x.Selected).OrderBy(x=> x.Column.Id).Select(x => new Column()
+        //         {
+        //             Name = x.Column.Name,
+        //             FieldId = x.Column.FieldId
+        //         }).ToList();
 
-                view = new TableView()
-                {
-                    IsDefault = data.IsDefault,
-                    Level= level,
-                    ModuleCode = data.Page.Code,
-                    ModuleName = data.Page.Name,
-                    Columns = columns
-                };
+        //         view = new TableView()
+        //         {
+        //             IsDefault = data.IsDefault,
+        //             Level= level,
+        //             ModuleCode = data.Page.Code,
+        //             ModuleName = data.Page.Name,
+        //             Columns = columns
+        //         };
 
-            }
-
-
-            grid.ViewInfo = view;
+        //     }
 
 
-            return grid;
-        }
+        //     grid.ViewInfo = view;
+
+
+        //     return grid;
+        // }
     }
 }
